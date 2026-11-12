@@ -1,0 +1,628 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>AI Nutrition Analysis</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+
+<style>
+
+:root {
+    color-scheme: dark;
+    --bg: #080a0c;
+    --panel: #111518;
+    --line: #293138;
+    --muted: #a4adb5;
+    --green: #25c879;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: #f5f6f7;
+    font-family: Arial, sans-serif;
+}
+
+header {
+    max-width: 1100px;
+    margin: auto;
+    padding: 28px 22px 10px;
+}
+
+h1 {
+    font-size: 28px;
+    margin: 0 0 7px;
+    text-align: center;
+}
+
+header p,
+.hint,
+.small {
+    color: var(--muted);
+    text-align: center;
+}
+
+main {
+    max-width: 1100px;
+    margin: 18px auto 40px;
+    padding: 0 22px;
+
+    display: grid;
+    grid-template-columns: .85fr 1.15fr;
+    gap: 20px;
+
+    align-items: stretch;
+}
+
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 22px;
+
+    height: 100%;
+}
+
+h2 {
+    font-size: 19px;
+    margin: 0 0 10px;
+}
+
+.hint {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+input[type=file] {
+    width: 100%;
+    padding: 13px;
+    border: 1px dashed #53606a;
+    border-radius: 12px;
+    background: #090c0e;
+    color: #ddd;
+}
+
+button {
+    width: 100%;
+    margin-top: 15px;
+    padding: 13px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--green);
+    color: #062012;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: .7;
+    cursor: not-allowed;
+}
+
+.preview {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 9px;
+    margin-top: 12px;
+}
+
+.preview img {
+    width: 100%;
+    height: 125px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.error {
+    margin-top: 14px;
+    padding: 12px;
+    background: #2a1111;
+    border: 1px solid #713737;
+    color: #ffc2c2;
+    border-radius: 10px;
+}
+
+.food-list {
+    margin-top: 18px;
+    padding: 14px;
+    background: #191e22;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.food-list h3 {
+    font-size: 14px;
+    margin: 0 0 10px;
+    color: var(--muted);
+}
+
+.food-names {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.food-tag {
+    padding: 7px 11px;
+    background: #202b32;
+    border: 1px solid #35434c;
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+.calories {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--green);
+    margin: 20px 0 4px;
+}
+
+.muted {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.nutrient {
+    min-height: 98px;
+    padding: 16px;
+    border-radius: 12px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.nutrient strong {
+    font-size: 25px;
+}
+
+.nutrient span {
+    font-weight: 700;
+    color: #edf0f2;
+}
+
+.protein {
+    background: #0b1b30;
+    color: #4b9aff;
+}
+
+.carbs {
+    background: #062319;
+    color: #19c98c;
+}
+
+.fat {
+    background: #261900;
+    color: #ffad19;
+}
+
+.fiber {
+    background: #1b1e21;
+    color: #e1e5e8;
+}
+
+.empty {
+    border: 1px dashed #3b454d;
+    border-radius: 12px;
+    padding: 30px 15px;
+    text-align: center;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.disclaimer {
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+@media(max-width: 720px) {
+
+    main {
+        grid-template-columns: 1fr;
+        padding: 0 14px;
+        margin-top: 12px;
+    }
+
+    header {
+        padding: 22px 14px 8px;
+    }
+
+    .panel {
+        padding: 18px;
+    }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>AI Nutrition Analysis</h1>
+    <p>Upload food images to estimate calories and nutrients.</p>
+</header>
+
+<main>
+
+    <!-- Image Upload Panel -->
+
+    <section class="panel">
+
+        <h2>Upload food image</h2>
+
+
+        <form method="post" enctype="multipart/form-data" id="form">
+
+            <input
+                type="file"
+                name="food_images"
+                id="images"
+                accept="image/png,image/jpeg,image/webp"
+                multiple
+                required
+            >
+
+            <div class="preview" id="preview"></div>
+
+            <button id="button">
+                Analyze Nutrition Values
+            </button>
+
+        </form>
+
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <p class="small">
+            JPG, PNG or WEBP · Maximum 2 images
+        </p>
+
+    </section>
+
+
+    <!-- Nutrition Results Panel -->
+
+    <section class="panel">
+
+        <h2>Nutrition results</h2>
+
+        {% if totals %}
+
+            {% if food_names %}
+
+                <div class="food-list">
+
+                    <h3>Detected food items</h3>
+
+                    <div class="food-names">
+
+                        {% for food in food_names %}
+
+                            <span class="food-tag">
+                                {{ food }}
+                            </span>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+
+            <div class="calories">
+
+                {% if totals.calories_kcal is not none %}
+                    {{ totals.calories_kcal }} kcal
+                {% else %}
+                    N/A
+                {% endif %}
+
+            </div>
+
+            <div class="muted">
+                Total estimated calories
+            </div>
+
+
+            <div class="grid">
+
+                <div class="nutrient protein">
+
+                    <strong>
+                        {% if totals.protein_g is not none %}
+                            {{ totals.protein_g }} g
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </strong>
+
+                    <span>Protein</span>
+
+                </div>
+
+
+                <div class="nutrient carbs">
+
+                    <strong>
+                        {% if totals.carbohydrates_g is not none %}
+                            {{ totals.carbohydrates_g }} g
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </strong>
+
+                    <span>Carbohydrates</span>
+
+                </div>
+
+
+                <div class="nutrient fat">
+
+                    <strong>
+                        {% if totals.fat_g is not none %}
+                            {{ totals.fat_g }} g
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </strong>
+
+                    <span>Fat</span>
+
+                </div>
+
+
+                <div class="nutrient fiber">
+
+                    <strong>
+                        {% if totals.fiber_g is not none %}
+                            {{ totals.fiber_g }} g
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </strong>
+
+                    <span>Fiber</span>
+
+                </div>
+
+            </div>
+
+
+            <p class="disclaimer">
+                Disclaimer: Nutrition values are AI-generated estimates
+                based on food identification, estimated portion sizes,
+                and available food database information. AI may make
+                mistakes, and actual nutritional values may differ.
+            </p>
+
+        {% else %}
+
+            <div class="empty">
+                Your nutrition values will appear here after analysis.
+            </div>
+
+        {% endif %}
+
+    </section>
+
+</main>
+
+
+<script>
+
+
+const input = document.getElementById('images');
+const preview = document.getElementById('preview');
+const form = document.getElementById('form');
+const button = document.getElementById('button');
+
+let compressedFiles = [];
+
+async function compressImage(file) {
+
+    return new Promise((resolve, reject) => {
+
+        const img = new Image();
+        const reader = new FileReader();
+
+        reader.onload = event => {
+
+            img.onload = () => {
+
+                const maxWidth = 1280;
+                const maxHeight = 1280;
+
+                let width = img.width;
+                let height = img.height;
+
+                const scale = Math.min(
+                    maxWidth / width,
+                    maxHeight / height,
+                    1
+                );
+
+                width = Math.round(width * scale);
+                height = Math.round(height * scale);
+
+                const canvas = document.createElement('canvas');
+
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext('2d');
+
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(blob => {
+
+                    if (!blob) {
+                        reject(new Error('Image compression failed.'));
+                        return;
+                    }
+
+                    const compressedFile = new File(
+                        [blob],
+                        file.name.replace(/\.[^.]+$/, '') + '.jpg',
+                        {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        }
+                    );
+
+                    resolve(compressedFile);
+
+                }, 'image/jpeg', 0.75);
+
+            };
+
+            img.onerror = reject;
+            img.src = event.target.result;
+
+        };
+
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+
+    });
+
+}
+
+
+input.addEventListener('change', async () => {
+
+    preview.innerHTML = '';
+    compressedFiles = [];
+
+    if (input.files.length > 2) {
+
+        preview.textContent =
+            'you limit has exceeded thank you for using AI nutrition.';
+
+        return;
+    }
+
+    try {
+
+        for (const file of input.files) {
+
+            const compressed = await compressImage(file);
+
+            compressedFiles.push(compressed);
+
+            const img = document.createElement('img');
+
+            img.src = URL.createObjectURL(compressed);
+
+            preview.appendChild(img);
+
+        }
+
+    } catch (error) {
+
+        preview.textContent =
+            'Unable to process image. Please try another image.';
+
+        console.error(error);
+
+    }
+
+});
+
+
+form.addEventListener('submit', async event => {
+
+    event.preventDefault();
+
+    if (input.files.length > 2) {
+
+        alert(
+            'you limit has exceeded thank you for using AI nutrition.'
+        );
+
+        return;
+    }
+
+    if (compressedFiles.length === 0) {
+
+        alert('Please select at least one food image.');
+        return;
+
+    }
+
+    const totalSize = compressedFiles.reduce(
+        (total, file) => total + file.size,
+        0
+    );
+
+    // Keep the image payload comfortably below Vercel's limit.
+    if (totalSize > 3.5 * 1024 * 1024) {
+
+        alert(
+            'Images are too large after compression. Please select smaller images.'
+        );
+
+        return;
+
+    }
+
+    button.disabled = true;
+    button.textContent = 'Analyzing...';
+
+    const formData = new FormData();
+
+    compressedFiles.forEach(file => {
+        formData.append('food_images', file);
+    });
+
+    try {
+
+        const response = await fetch('/', {
+            method: 'POST',
+            body: formData
+        });
+
+        const html = await response.text();
+
+        document.open();
+        document.write(html);
+        document.close();
+
+    } catch (error) {
+
+        alert('Unable to connect. Please try again.');
+
+        button.disabled = false;
+        button.textContent = 'Analyze Nutrition Values';
+
+        console.error(error);
+
+    }
+
+});
+
+</script>
+
+</body>
+</html>
