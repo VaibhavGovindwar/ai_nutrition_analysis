@@ -1,52 +1,45 @@
 
-import os
 from pathlib import Path
-
-# ChromaDB may download its default embedding model.
-# Vercel's /tmp directory is writable.
-if os.getenv("VERCEL"):
-    os.environ["HOME"] = "/tmp"
-
-import chromadb
+from difflib import get_close_matches
 
 
 class FoodRAG:
-    """Retrieve food-name mappings; USDA supplies nutrient values."""
 
     def __init__(self, knowledge_file):
-        self.client = chromadb.Client()
-
-        self.collection = self.client.get_or_create_collection(
-            "food_name_aliases"
-        )
+        self.food_mappings = {}
 
         path = Path(knowledge_file)
 
-        lines = [
-            line.strip()
-            for line in path.read_text(encoding="utf-8").splitlines()
-            if line.strip() and not line.lstrip().startswith("#")
-        ]
+        lines = path.read_text(encoding="utf-8").splitlines()
 
-        if lines:
-            self.collection.upsert(
-                ids=[f"food-{i}" for i in range(len(lines))],
-                documents=lines
-            )
+        for line in lines:
+            line = line.strip()
+
+            if not line or line.startswith("#") or "=>" not in line:
+                continue
+
+            alias, usda_name = line.split("=>", 1)
+
+            self.food_mappings[alias.strip().lower()] = usda_name.strip()
 
     def get_search_name(self, detected_name):
 
-        if self.collection.count() == 0:
-            return detected_name
+        detected_name = detected_name.strip().lower()
 
-        match = self.collection.query(
-            query_texts=[detected_name],
-            n_results=1
+        # Exact matching
+        if detected_name in self.food_mappings:
+            return self.food_mappings[detected_name]
+
+        # Similar-name matching
+        matches = get_close_matches(
+            detected_name,
+            self.food_mappings.keys(),
+            n=1,
+            cutoff=0.6
         )
 
-        documents = match.get("documents", [[]])[0]
+        if matches:
+            return self.food_mappings[matches[0]]
 
-        if documents and "=>" in documents[0]:
-            return documents[0].split("=>", 1)[1].strip()
-
+        # If no mapping is found, use the original food name
         return detected_name
