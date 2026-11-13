@@ -3,7 +3,7 @@
 ### Multimodal Food Recognition & Nutrition Estimation using Gemini, Retrieval-Based Food Mapping and USDA
 
 <p align="center">
-  <img src="assets/nutrition-analysis-banner.png" alt="AI Nutrition Analysis — food recognition and nutrition estimation" width="100%">
+  <img src="public/nutrition-analysis-banner.png" alt="AI Nutrition Analysis — food recognition and nutrition estimation" width="100%">
 </p>
 
 <p align="center">
